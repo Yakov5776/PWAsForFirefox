@@ -110,13 +110,17 @@ class PwaBrowser {
         if (dynamicTitle) document.title = this.getWindowTitleForBrowser(this.selectedBrowser);
       };
     });
+    let lastTaskbarIconImage = null;
 
-    function updateNameAndIcon (source, updateTaskbarIcon = false) {
+    function updateNameAndIcon (source, shouldUpdateTaskbarIcon = false) {
       const dynamicIcon = xPref.get(ChromeLoader.PREF_DYNAMIC_WINDOW_ICON);
       if (dynamicIcon) {
         const image = source.getAttribute('image');
         tabIconImage.setAttribute('src', image);
-        if (updateTaskbarIcon) lazy.updateWindowsTaskbarIcon(window, window.gFFPWASiteConfig, image);
+        if (shouldUpdateTaskbarIcon && image !== lastTaskbarIconImage) {
+          lastTaskbarIconImage = image;
+          lazy.updateWindowsTaskbarIcon(window, window.gFFPWASiteConfig, image);
+        }
       }
 
       const dynamicTitle = xPref.get(ChromeLoader.PREF_DYNAMIC_WINDOW_TITLE);

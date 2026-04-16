@@ -15,6 +15,8 @@ XPCOMUtils.defineLazyServiceGetter(lazy, 'WinUIUtils', '@mozilla.org/windows-ui-
 
 const INTEGRATION_STATIC_STYLES = 'firefoxpwa-system-integration-styles'
 const INTEGRATION_DYNAMIC_STYLES = 'firefoxpwa-system-integration-styles-dynamic'
+const WINDOW_ICON_SET_DELAY_MS = 100
+const windowIconTimeouts = new WeakMap()
 
 /**
  * @param {Window} window
@@ -126,8 +128,11 @@ function getSiteIconList (site) {
 
 async function setWindowIcons (window, site, dynamicIcon = null) {
   const iconLists = [];
+  const previousTimeout = windowIconTimeouts.get(window);
+  if (previousTimeout) window.clearTimeout(previousTimeout);
 
   if (dynamicIcon) {
+    // Try dynamic favicon first, then fall back to configured/manifest icons.
     iconLists.push(buildIconList([{
       purpose: 'any',
       sizes: 'any',
@@ -146,9 +151,10 @@ async function setWindowIcons (window, site, dynamicIcon = null) {
     if (windowIcons[0] || windowIcons[1]) {
       // There is a small delay here because otherwise `setWindowIcon` may fail
       // It shouldn't visually matter because the icon will be set by a shortcut anyway
-      window.setTimeout(() => {
+      const timeout = window.setTimeout(() => {
         lazy.WinUIUtils.setWindowIcon(window, windowIcons[0], windowIcons[1]);
-      }, 100);
+      }, WINDOW_ICON_SET_DELAY_MS);
+      windowIconTimeouts.set(window, timeout);
       return;
     }
   }
@@ -157,7 +163,9 @@ async function setWindowIcons (window, site, dynamicIcon = null) {
 export function updateWindowsTaskbarIcon (window, site, dynamicIcon) {
   if (lazy.AppConstants.platform !== 'win') return;
   if (!site) return;
-  setWindowIcons(window, site, dynamicIcon).catch(console.error);
+  setWindowIcons(window, site, dynamicIcon).catch(error => {
+    console.error('Failed to update Windows taskbar icon', error);
+  });
 }
 
 function setWindowColors (window, site) {
