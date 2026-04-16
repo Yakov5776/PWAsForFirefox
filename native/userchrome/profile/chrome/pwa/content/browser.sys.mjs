@@ -11,6 +11,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   applyDynamicThemeColor: 'resource://pwa/utils/systemIntegration.sys.mjs',
   applySystemIntegration: 'resource://pwa/utils/systemIntegration.sys.mjs',
   buildIconList: 'resource://pwa/utils/systemIntegration.sys.mjs',
+  updateWindowsTaskbarIcon: 'resource://pwa/utils/systemIntegration.sys.mjs',
 });
 
 XPCOMUtils.defineLazyServiceGetter(lazy, 'ioService', '@mozilla.org/network/io-service;1', Ci.nsIIOService);
@@ -110,9 +111,13 @@ class PwaBrowser {
       };
     });
 
-    function updateNameAndIcon (source) {
+    function updateNameAndIcon (source, updateTaskbarIcon = false) {
       const dynamicIcon = xPref.get(ChromeLoader.PREF_DYNAMIC_WINDOW_ICON);
-      if (dynamicIcon) tabIconImage.setAttribute('src', source.getAttribute('image'));
+      if (dynamicIcon) {
+        const image = source.getAttribute('image');
+        tabIconImage.setAttribute('src', image);
+        if (updateTaskbarIcon) lazy.updateWindowsTaskbarIcon(window, window.gFFPWASiteConfig, image);
+      }
 
       const dynamicTitle = xPref.get(ChromeLoader.PREF_DYNAMIC_WINDOW_TITLE);
       if (dynamicTitle) tabLabel.replaceChildren(source.getAttribute('label'));
@@ -126,7 +131,7 @@ class PwaBrowser {
 
         switch (mutation.attributeName) {
           case 'image':
-            updateNameAndIcon(mutation.target);
+            updateNameAndIcon(mutation.target, true);
             break;
 
           case 'label':
@@ -146,7 +151,7 @@ class PwaBrowser {
             break;
 
           case 'selected':
-            updateNameAndIcon(mutation.target);
+            updateNameAndIcon(mutation.target, true);
             break;
         }
       }
