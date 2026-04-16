@@ -110,17 +110,12 @@ class PwaBrowser {
         if (dynamicTitle) document.title = this.getWindowTitleForBrowser(this.selectedBrowser);
       };
     });
-    let lastTaskbarIconImage = null;
-
     function updateNameAndIcon (source, shouldUpdateTaskbarIcon = false) {
       const dynamicIcon = xPref.get(ChromeLoader.PREF_DYNAMIC_WINDOW_ICON);
       if (dynamicIcon) {
         const image = source.getAttribute('image');
         tabIconImage.setAttribute('src', image);
-        if (shouldUpdateTaskbarIcon && image !== lastTaskbarIconImage) {
-          lastTaskbarIconImage = image;
-          lazy.updateWindowsTaskbarIcon(window, window.gFFPWASiteConfig, image);
-        }
+        if (shouldUpdateTaskbarIcon) lazy.updateWindowsTaskbarIcon(window, window.gFFPWASiteConfig, image);
       }
 
       const dynamicTitle = xPref.get(ChromeLoader.PREF_DYNAMIC_WINDOW_TITLE);
@@ -139,7 +134,7 @@ class PwaBrowser {
             break;
 
           case 'label':
-            updateNameAndIcon(mutation.target);
+            updateNameAndIcon(mutation.target, true);
             break;
 
           case 'labeldirection':
@@ -152,6 +147,7 @@ class PwaBrowser {
           case 'pendingicon':
             this.syncAttribute(mutation.target, tabThrobber, mutation.attributeName);
             this.syncAttribute(mutation.target, tabIconImage, mutation.attributeName);
+            updateNameAndIcon(mutation.target, true);
             break;
 
           case 'selected':
@@ -165,6 +161,8 @@ class PwaBrowser {
       document.getElementById('tabbrowser-tabs'),
       { attributes: true, subtree: true }
     );
+
+    updateNameAndIcon(window.gBrowser.selectedTab, true);
   }
 
   createAddressInput () {
