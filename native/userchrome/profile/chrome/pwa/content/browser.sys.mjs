@@ -134,7 +134,7 @@ class PwaBrowser {
             break;
 
           case 'label':
-            updateNameAndIcon(mutation.target, true);
+            updateNameAndIcon(mutation.target);
             break;
 
           case 'labeldirection':
@@ -147,7 +147,7 @@ class PwaBrowser {
           case 'pendingicon':
             this.syncAttribute(mutation.target, tabThrobber, mutation.attributeName);
             this.syncAttribute(mutation.target, tabIconImage, mutation.attributeName);
-            updateNameAndIcon(mutation.target, true);
+            updateNameAndIcon(mutation.target, mutation.attributeName === 'pendingicon');
             break;
 
           case 'selected':
