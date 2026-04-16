@@ -11,6 +11,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   applyDynamicThemeColor: 'resource://pwa/utils/systemIntegration.sys.mjs',
   applySystemIntegration: 'resource://pwa/utils/systemIntegration.sys.mjs',
   buildIconList: 'resource://pwa/utils/systemIntegration.sys.mjs',
+  updateWindowsTaskbarIcon: 'resource://pwa/utils/systemIntegration.sys.mjs',
 });
 
 XPCOMUtils.defineLazyServiceGetter(lazy, 'ioService', '@mozilla.org/network/io-service;1', Ci.nsIIOService);
@@ -109,10 +110,13 @@ class PwaBrowser {
         if (dynamicTitle) document.title = this.getWindowTitleForBrowser(this.selectedBrowser);
       };
     });
-
-    function updateNameAndIcon (source) {
+    function updateNameAndIcon (source, shouldUpdateTaskbarIcon = false) {
       const dynamicIcon = xPref.get(ChromeLoader.PREF_DYNAMIC_WINDOW_ICON);
-      if (dynamicIcon) tabIconImage.setAttribute('src', source.getAttribute('image'));
+      if (dynamicIcon) {
+        const image = source.getAttribute('image');
+        tabIconImage.setAttribute('src', image);
+        if (shouldUpdateTaskbarIcon) lazy.updateWindowsTaskbarIcon(window, window.gFFPWASiteConfig, image);
+      }
 
       const dynamicTitle = xPref.get(ChromeLoader.PREF_DYNAMIC_WINDOW_TITLE);
       if (dynamicTitle) tabLabel.replaceChildren(source.getAttribute('label'));
@@ -126,7 +130,7 @@ class PwaBrowser {
 
         switch (mutation.attributeName) {
           case 'image':
-            updateNameAndIcon(mutation.target);
+            updateNameAndIcon(mutation.target, true);
             break;
 
           case 'label':
@@ -143,10 +147,11 @@ class PwaBrowser {
           case 'pendingicon':
             this.syncAttribute(mutation.target, tabThrobber, mutation.attributeName);
             this.syncAttribute(mutation.target, tabIconImage, mutation.attributeName);
+            updateNameAndIcon(mutation.target, mutation.attributeName === 'pendingicon');
             break;
 
           case 'selected':
-            updateNameAndIcon(mutation.target);
+            updateNameAndIcon(mutation.target, true);
             break;
         }
       }
@@ -156,6 +161,8 @@ class PwaBrowser {
       document.getElementById('tabbrowser-tabs'),
       { attributes: true, subtree: true }
     );
+
+    updateNameAndIcon(window.gBrowser.selectedTab, true);
   }
 
   createAddressInput () {
